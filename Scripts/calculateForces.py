@@ -7,11 +7,10 @@ import math
 # ------ FUNCTIONS ------
 
 # Set Keyframes
-def setNextKeyParticle( pName, pKeyStart, pTargetAttribute, pValue ):
+def setNextKeyParticle( pName, pKeyStart, pTargetAttribute, pValue, pDt ):
     
-    # stepLenght
-    h = .1
-    keyNext = pStartKey + h
+
+    keyNext = pStartKey + pDt
     
     # clear selection list and select all particles
     cmds.select( clear=True )
@@ -47,16 +46,25 @@ def findNeighbours( pParticle, pSmoothLength ):
     
     return neighbourList
 
+#nPosition = new position of one particle 
+def weightFunction( pPosition, pH ): #H = 0.1
+    
+    q = ( pPosition )/pH
+    
+    return ( 1.0/( 3.14*pH*pH*pH ))*( 1.0-1.5*q*q + 0.75*q*q*q )
 
-def calculateVelocity( pList ):
-    velocity = ( 0, 0, 0 )
+
+
+def calculateDensity( pPosition, pList, pH, pMass ):
     
-    return velocity
-    
-def calculateDensity( pList ):
     density = 0 
+ 
+    for i in range( 0, len( pList ) ):
+        density += pMass * weightFunction( abs( pPosition - cmds.getParticleAttr( pList[i], at = 'position' ) ), pH )
     
     return density
+    
+
     
 def calculatePressure( pList ):
     pressure = 0
@@ -68,8 +76,14 @@ def calculateViscosity( pList ):
     
     return viscosity
     
-def calculateNewPosition( pVelocity, pDensity, pPressure, pViscosity, pPosition ):
+    
+    
+def calculateNewPosition( pPosition, pDensity, pMass, pDt ):
     newPosition = ( 0, 0, 0 )
+    
+    velocity = pDensity / pMass #kanske multiplicerat med pDt
+    
+    newPosition = ( velocity * pDt ) + pPosition
     
     return newPosition
     
@@ -91,7 +105,12 @@ endTime = cmds.playbackOptions( query=True, maxTime=True )
 
   
 # Calculate smoothing Lenght
-smoothL = .3
+h = .3
+mass = cmds.getParticleAttr( 'nParticle1', at = 'mass' )
+# send mass[0]
+
+# stepLenght
+dt = .1
 
 
 # ------ ANIMATION LOOP ------
@@ -101,15 +120,32 @@ for i in range(0, 40):
     for i in range(100):    #1330
     
         # Get neighbor list for the current particle
-        nList = findNeighbours( 'nParticle1.pt[' + str(i) + ']', smoothL )
+        nList = findNeighbours( 'nParticle1.pt[' + str(i) + ']', h )
         
+        
+        currentPosition = cmds.getParticleAttr( 'nParticle1.pt[' + str(i) + ']', at = 'position' )
         
         # Calculate Forces  
+        F = calculateDensity( currentPosition, nList, h, mass )
         
         # Calculate new position of particles 
-         
+        nextPosition = calculateNewPosition( currentPosition, F, mass, dt )
+        
+        
+        # Set next keyFrame 
         setNextKeyParticle( 'nParticle1', startTime, endTime, 'rotateY', 360 )
-    
+  
+  
+# TESTING ERROR
+# unsupported operand type(s) for -: 'list' and 'list' #  
+nList = findNeighbours( 'nParticle1.pt[' + str(0) + ']', h )  
+print nList
+hej = cmds.getParticleAttr( pList[i], at = 'position' )
+print hej
+
+
+
+
 
 #cmds.setKeyframe(obj + '.translateX', value=xVal, time=frame)
 
@@ -144,4 +180,3 @@ for i in range(0, 40):
 
 
 
-    
