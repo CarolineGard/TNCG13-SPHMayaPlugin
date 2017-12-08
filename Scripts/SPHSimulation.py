@@ -68,12 +68,16 @@ cmds.gravity( 'nParticle1', n= 'gravity' )
 cmds.setAttr( 'gravity.attenuation', 1)
 cmds.connectDynamic( 'nParticle1', f ='gravity')
 
-'''
-cmds.rigidBody( n='myRigidBody', active=True, iv=(10, 0, 0), b=0.5, sf=0.4 )
-cmds.connectDynamic( 'nParticle1', f ='myRigidBody')
-'''
 
 
+#reach only one particle and set attribute
+#available attributes: position, ramp position, velocity, 
+#ramp velocity, acceleration, ramp acceleration, mass, opacity, 
+#lifespan, collission force, rgb, world velocity. AND YOU CAN ADD OTHER PER PARTICLE ATTRIBUTES
+hejn = cmds.getParticleAttr( 'nParticleShape1.pt[5]' , at = 'velocity' ) 
+print hejn
+jaa = cmds.setParticleAttr( 'nParticleShape1.pt[5]', at = 'velocity', vv = (1.0,1.0,1.0) )
+print jaa
 
 
 
