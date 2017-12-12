@@ -10,7 +10,7 @@ import math
 def setNextKeyParticle( pName, pKeyStart, pTargetAttribute, pValue, pDt ):
     
 
-    keyNext = pStartKey + pDt
+    keyNext = pKeyStart + pDt
     
     # clear selection list and select all particles
     cmds.select( clear=True )
@@ -20,7 +20,7 @@ def setNextKeyParticle( pName, pKeyStart, pTargetAttribute, pValue, pDt ):
     # create animation, set startkeyframe, startvalue=0 at first key frame. Make linear keyframes
     cmds.setKeyframe( pName, time=keyNext, attribute=pTargetAttribute, value=0 )
     # cmds.setKeyframe( pName, time=pEndKey, attribute=pTargetAttribute, value=pValue ) 
-    cmds.selectKey( pName, time=( pStartKey, pEndKey ), attribute=pTargetAttribute, keyframe=True )
+    cmds.selectKey( pName, time=( pKeyStart, keyNext ), attribute=pTargetAttribute, keyframe=True )
     cmds.keyTangent( inTangentType='linear', outTangentType='linear' )
 
 
@@ -60,11 +60,13 @@ def calculateDensity( pPosition, pList, pH, pMass ):
     density = 0 
  
     for i in range( 0, len( pList ) ):
-        density += pMass * weightFunction( abs( pPosition - cmds.getParticleAttr( pList[i], at = 'position' ) ), pH )
+        neighbourPosition = cmds.getParticleAttr( pList[i], at = 'position' )
+        difference = [pPosition[j]-neighbourPosition[j] for j in xrange(min(len(pPosition), len(neighbourPosition)))]
+        distance = math.sqrt( pow(difference[0],2) + pow(difference[1],2) + pow(difference[2],2) )
+        density += pMass[0] * weightFunction( distance, pH )
     
     return density
     
-
     
 def calculatePressure( pList ):
     pressure = 0
@@ -79,11 +81,14 @@ def calculateViscosity( pList ):
     
     
 def calculateNewPosition( pPosition, pDensity, pMass, pDt ):
-    newPosition = ( 0, 0, 0 )
     
-    velocity = pDensity / pMass #kanske multiplicerat med pDt
-    
-    newPosition = ( velocity * pDt ) + pPosition
+    newPosition = [ 0, 0, 0 ]
+    velocity = pDensity / pMass[0] #kanske multiplicerat med pDt
+    #Ska velocity vara float eller vector??????????????????????????????????????
+
+    newPosition[0] = ( velocity * pDt ) + pPosition[0]
+    newPosition[1] = ( velocity * pDt ) + pPosition[1]
+    newPosition[2] = ( velocity * pDt ) + pPosition[2]
     
     return newPosition
     
@@ -114,10 +119,12 @@ dt = .1
 
 
 # ------ ANIMATION LOOP ------
-for i in range(0, 40):
+#Keyframes
+for i in range(0, 10):
     
     # Per every time step h
-    for i in range(100):    #1330
+    #Number of particles
+    for i in range(20):    #1330
     
         # Get neighbor list for the current particle
         nList = findNeighbours( 'nParticle1.pt[' + str(i) + ']', h )
@@ -134,19 +141,22 @@ for i in range(0, 40):
         
         # Set next keyFrame 
         setNextKeyParticle( 'nParticle1', startTime, endTime, 'rotateY', 360 )
-  
-  
+
+
+'''
 # TESTING ERROR
 # unsupported operand type(s) for -: 'list' and 'list' #  
 nList = findNeighbours( 'nParticle1.pt[' + str(0) + ']', h )  
 print nList
 hej = cmds.getParticleAttr( pList[i], at = 'position' )
 print hej
-
-
-
-
-
+'''
+'''
+currentPosition = cmds.getParticleAttr( 'nParticle1.pt[' + str(i) + ']', at = 'position' )
+print currentPosition
+nList = findNeighbours( 'nParticle1.pt[' + str(i) + ']', h )
+print nList
+'''
 #cmds.setKeyframe(obj + '.translateX', value=xVal, time=frame)
 
 
