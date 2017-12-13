@@ -13,8 +13,6 @@ if len( particleList ) > 0:
 
 result = cmds.polySphere( r=0.3, sx=1, sy=1, name='particle#' )
 
-#print 'result: ' + str( result )
-
 transformName = result[0]
 
 instanceGroupName = cmds.group( empty=True, name=transformName + '_instance_grp#' )
