@@ -1,4 +1,4 @@
-# calculateForces.py
+# calculateForcesSpheres.py
 
 import maya.cmds as cmds
 import maya.mel as mel
@@ -6,67 +6,88 @@ import math
 
 # ------ FUNCTIONS ------
 
-# Set Keyframes
-def setNextKeyParticle( pName, pKeyStart, pTargetAttribute, pValue, pDt ):
-    
 
-    keyNext = pKeyStart + pDt
+# Set Keyframes
+def setNextKeyParticle( pName, pKeyStart, pTargetAttribute, pValue ):
+    
+    # keyNext = pKeyStart + pDt
+    keyNext = pKeyStart
     
     # clear selection list and select all particles
     cmds.select( clear=True )
-    
-    # cmds.cutKey( pName, time=( pStartKey, endTime ), attribute=pTargetAttribute )
+
 
     # create animation, set startkeyframe, startvalue=0 at first key frame. Make linear keyframes
-    cmds.setKeyframe( pName, time=keyNext, attribute=pTargetAttribute, value=0 )
+    cmds.setKeyframe( pName, time=keyNext, attribute=pTargetAttribute, value=pValue )
+    
     # cmds.setKeyframe( pName, time=pEndKey, attribute=pTargetAttribute, value=pValue ) 
     cmds.selectKey( pName, time=( pKeyStart, keyNext ), attribute=pTargetAttribute, keyframe=True )
     cmds.keyTangent( inTangentType='linear', outTangentType='linear' )
+   
+
 
 
 # Function returnig array of neighbouring particles with smoothing length
-def findNeighbours( pParticle, pSmoothLength ):
-    neighbourList = []
-    p1_pos = cmds.getParticleAttr( pParticle, at='position' )
+def findNeighbours( pParticleX, pParticleY, pParticleZ , pSmoothLength ):
     
-    for i in range(1330):
+    neighbourList = []
+    
+    # 1331
+    for i in range(1,8):
         
-        p2_pos = cmds.getParticleAttr( 'nParticle1.pt[' + str(i) + ']', at='position' )
+        posX = cmds.getAttr( 'particle'+str(i)+'.translateX' )
+        posY = cmds.getAttr( 'particle'+str(i)+'.translateY' )
+        posZ = cmds.getAttr( 'particle'+str(i)+'.translateZ' )
         
         # Calculate distance 
-        dx = p1_pos[0] - p2_pos[0]
-        dy = p1_pos[1] - p2_pos[1]
-        dz = p1_pos[2] - p2_pos[2]
+        dx = posX - pParticleX
+        dy = posY - pParticleY
+        dz = posZ - pParticleZ
         
         distance = math.sqrt( math.pow(dx, 2) + math.pow(dy, 2) + math.pow(dz, 2) )
     
         # if distance <= psmoothLength, put in array
         if distance <= pSmoothLength and distance > 0: 
-            neighbourList.append( 'nParticle1.pt[' + str(i) + ']' )
+            neighbourList.append( 'particle'+str(i) )
     
     return neighbourList
 
 #nPosition = new position of one particle 
-def weightFunction( pPosition, pH ): #H = 0.1
+#H = 0.1
+def weightFunction( pParticleX, pParticleY, pParticleZ, pH ): 
     
-    q = ( pPosition )/pH
+    qX = ( pParticleX )/pH
+    qY = ( pParticleY )/pH
+    qZ = ( pParticleZ )/pH
     
-    return ( 1.0/( 3.14*pH*pH*pH ))*( 1.0-1.5*q*q + 0.75*q*q*q )
+    wX = ( 1.0/( 3.14*pH*pH*pH ))*( 1.0-1.5*qX*qX + 0.75*qX*qX*qX )
+    wY = ( 1.0/( 3.14*pH*pH*pH ))*( 1.0-1.5*qY*qY + 0.75*qY*qY*qY )
+    wZ = ( 1.0/( 3.14*pH*pH*pH ))*( 1.0-1.5*qZ*qZ + 0.75*qZ*qZ*qZ )
+    
+    return [wX, wY, wZ]
 
 
 
-def calculateDensity( pPosition, pList, pH, pMass ):
+def calculateDensity( pParticleX, pParticleY, pParticleZ, pList, pH, pMass ):
     
     density = 0 
  
     for i in range( 0, len( pList ) ):
-        neighbourPosition = cmds.getParticleAttr( pList[i], at = 'position' )
-        difference = [pPosition[j]-neighbourPosition[j] for j in xrange(min(len(pPosition), len(neighbourPosition)))]
-        distance = math.sqrt( pow(difference[0],2) + pow(difference[1],2) + pow(difference[2],2) )
-        density += pMass[0] * weightFunction( distance, pH )
+        
+        neighbourPositionX = cmds.getAttr( pList[i]+'.translateX' )
+        neighbourPositionY = cmds.getAttr( pList[i]+'.translateY' )
+        neighbourPositionZ = cmds.getAttr( pList[i]+'.translateZ' )
+        
+        dx = pParticleX - neighbourPositionX
+        dx = pParticleY - neighbourPositionY
+        dx = pParticleZ - neighbourPositionz
+        
+        distance = math.sqrt( math.pow(dx, 2) + math.pow(dy, 2) + math.pow(dz, 2) )
+        
+        density += pMass * weightFunction( distance, pH )
     
     return density
-    
+'''    
     
 def calculatePressure( pList ):
     pressure = 0
@@ -91,15 +112,12 @@ def calculateNewPosition( pPosition, pDensity, pMass, pDt ):
     newPosition[2] = ( velocity * pDt ) + pPosition[2]
     
     return newPosition
-    
+'''
 
 # ******************************************************#
 # ------ MAIN ------
 # ******************************************************#
 
-
-# Read Mel-file
-# Read Python-file
 
 # Playback options
 cmds.playbackOptions( playbackSpeed=0, maxPlaybackSpeed=1 )
@@ -107,74 +125,46 @@ cmds.playbackOptions( min=1, max=120 )
 startTime = cmds.playbackOptions( query=True, minTime=True )
 endTime = cmds.playbackOptions( query=True, maxTime=True )
 
-
   
 # Calculate smoothing Lenght
 h = .3
-mass = cmds.getParticleAttr( 'nParticle1', at = 'mass' )
-# send mass[0]
+mass = 0.1
+G = 9.82
 
 # stepLenght
-dt = .1
+dt = 10
+
+time = startTime
+# cmds.select('particle100')
 
 
-# ------ ANIMATION LOOP ------
-#Keyframes
-for i in range(0, 10):
+# Set first Keyframe for all partices
+
+for i in range (1,8):
+    # Current position for each particle 
+    pos = cmds.getAttr( 'particle'+str(i)+'.translateY' )
     
-    # Per every time step h
-    #Number of particles
-    for i in range(20):    #1330
-    
-        # Get neighbor list for the current particle
-        nList = findNeighbours( 'nParticle1.pt[' + str(i) + ']', h )
+    setNextKeyParticle( 'particle'+str(i), time, 'translateY', pos)
+
+
+for j in range (1, 10):
+    time += dt
+    for i in range (1, 8):
+        
+        posX = cmds.getAttr( 'particle'+str(i)+'.translateX' )
+        posY = cmds.getAttr( 'particle'+str(i)+'.translateY' )
+        posZ = cmds.getAttr( 'particle'+str(i)+'.translateZ' )
         
         
-        currentPosition = cmds.getParticleAttr( 'nParticle1.pt[' + str(i) + ']', at = 'position' )
+        # Calculate forces
         
-        # Calculate Forces  
-        F = calculateDensity( currentPosition, nList, h, mass )
+        listNeighbours = findNeighbours( posX, posY, posZ, h )
         
-        # Calculate new position of particles 
-        nextPosition = calculateNewPosition( currentPosition, F, mass, dt )
+        # v = -(G/100)*time
         
-        
-        # Set next keyFrame 
-        setNextKeyParticle( 'nParticle1', startTime, endTime, 'rotateY', 360 )
-
-
-'''
-# TESTING ERROR
-# unsupported operand type(s) for -: 'list' and 'list' #  
-nList = findNeighbours( 'nParticle1.pt[' + str(0) + ']', h )  
-print nList
-hej = cmds.getParticleAttr( pList[i], at = 'position' )
-print hej
-'''
-'''
-currentPosition = cmds.getParticleAttr( 'nParticle1.pt[' + str(i) + ']', at = 'position' )
-print currentPosition
-nList = findNeighbours( 'nParticle1.pt[' + str(i) + ']', h )
-print nList
-'''
-#cmds.setKeyframe(obj + '.translateX', value=xVal, time=frame)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        # Set keyframes
+        cmds.select( 'particle'+str(i) )
+        setNextKeyParticle( 'particle'+str(i), time, 'translateY', v )
 
 
 

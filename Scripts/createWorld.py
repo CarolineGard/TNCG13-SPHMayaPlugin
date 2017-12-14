@@ -27,10 +27,6 @@ cmds.setAttr( 'lambert1.refractions', 1 )
 cmds.setAttr( 'lambert1.refractiveIndex', 1.52 )
 cmds.setAttr( 'lambert1.color', 0.417, 0.775769, 1, type = 'double3' )
 
-cmds.select('transpCube')
-cmds.rigidBody(passive=True, solver='rigidSolver', name='passiveRigidBody')
-
-
 
 # ----- Create Particles -----
 
@@ -46,20 +42,23 @@ for i in range( 0, 2 ):
         for k in range( 0, 2 ):
             count=count+1
 
-            result = cmds.polySphere( r=0.2, sx=1, sy=1, name='sphere#' )
+            result = cmds.polySphere( r=0.2, sx=1, sy=1, name='particle#' )
             
             cmds.rigidSolver(create=True, name='rigidSolver')
             # Set the ball to active rigid body
-            cmds.select('sphere' + str(count))
+            cmds.select('particle' + str(count))
             cmds.rigidBody(active=True, solver='rigidSolver', name='activeRigidBody#')
             # Add a gravity field, and connect it to ball
             cmds.gravity(pos=(0, 0, 0), m=9.8, dx=0, dy=-1, dz=0, name='gravityField')
             cmds.connectDynamic('activeRigidBody' + str(count), f='gravityField')
             cmds.rigidSolver('rigidSolver', e=True, bounciness=False)
-            cmds.move(-i*0.5,5+j*0.5,k*0.5,'sphere' + str(count))
+            cmds.move(-i*0.5,5+j*0.5,k*0.5,'particle' + str(count))
             cmds.rigidSolver('rigidSolver', e=True, bounciness=True)
             cmds.rigidSolver('passiveRigidBody', 'activeRigidBody' + str(count), 'rigidSolver1', e=True, interpenetrate=True)
 
+
+cmds.select('transpCube')
+cmds.rigidBody(passive=True, solver='rigidSolver', name='passiveRigidBody')
 
 
 #cmds.xform( particleGroup, centerPivots=True )
