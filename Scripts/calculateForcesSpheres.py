@@ -31,9 +31,9 @@ def setNextKeyParticle( pName, pKeyStart, pTargetAttribute, pValue ):
 def findNeighbours( pParticle, pSmoothLength ):
     
     neighbourList = []
-    
+
     # 1331
-    for i in range(1,8):
+    for i in range(1,9):
         
         pos = [ cmds.getAttr( 'particle'+str(i)+'.translateX' ),
                 cmds.getAttr( 'particle'+str(i)+'.translateY' ),
@@ -141,7 +141,7 @@ def calculatePressureForce( pPosition, pDensity, pList, pMass ):
                      pPosition[1] - nPos[1], 
                      pPosition[2] - nPos[2] ]
         
-        # TODO: hur ska detta berÃ¤knas??
+        # TODO: hur ska detta berÃƒÂ¤knas??
 
         nDensity = calculateDensity( nPos, pList, 1, pMass )
         # TODO: send correct pList 
@@ -186,40 +186,7 @@ def calculateViscosity( pPosition, pID, pList, pVelocity, pDensity, pH ):
         viscosity[2] += mass * ( ( nVel[2] - pVel[2] ) / pDensity[2] )
                        
     return ( uConstant * viscosity )
-    
-'''
-def calculateNewPosition( pParticlePos, pVelocityList, pDt ):
-    nPosition = [0, 0, 0]
-    
-    nPosition = [ pDt*pVelocityList[0] + pParticlePos[0],
-                  pDt*pVelocityList[1] + pParticlePos[1],
-                  pDt*pVelocityList[2] + pParticlePos[2] ]
-    
-    #Boundary conditions
-    Xmin = -2.5
-    Xmax = 2.5
-    Ymin = -1
-    Zmin = -2.5
-    Zmax = 2.5
-       
-    if ( nPosition[0] < Xmin or nPosition[0] > Xmax ):
-        #print 'X'
-        pVelocityList[0] = (-1) * pVelocityList[0]
-        nPosition[0] = pParticlePos[0]
-        
-    if ( nPosition[1] < Ymin ):
-        #print 'Y'
-        pVelocityList[1] = (-1) * pVelocityList[1]
-        nPosition[1] = pParticlePos[1]
-        
-    if ( nPosition[2] < Zmin or nPosition[2] > Zmax ):
-        #print 'Z'
-        pVelocityList[2] = (-1) * pVelocityList[2]
-        nPosition[2] = pParticlePos[2]  
-    
-    return nPosition
 
-'''
 
 def calculateNewPosition( pParticlePos, pVelocityList, pDt ):
     
@@ -229,7 +196,7 @@ def calculateNewPosition( pParticlePos, pVelocityList, pDt ):
                     pDt * pVelocityList[1] + pParticlePos[1],
                     pDt * pVelocityList[2] + pParticlePos[2] ]
     
-    #print newPosition
+    # print newPosition
     #Boundary conditions
     Xmin = -2.5
     Xmax = 2.5
@@ -286,11 +253,12 @@ G = 9.82
 dt = 4
 
 time = startTime
+
 # cmds.select('particle100')
 
 
 # Set first Keyframe for all partices
-for i in range (1,8):
+for i in range (1,9):
     pos = [ cmds.getAttr( 'particle'+str(i)+'.translateX' ),
             cmds.getAttr( 'particle'+str(i)+'.translateY' ),
             cmds.getAttr( 'particle'+str(i)+'.translateZ' ) ]
@@ -314,31 +282,32 @@ for j in range (1, 100):
         # Calculate forces
         
         listNeighbours = findNeighbours( particlePos, h )
+        #print 'listNeighbours: ' + str(listNeighbours)
         
         # 1. Compute Density
         density = calculateDensity( particlePos, listNeighbours, h, mass )
-        print 'density: ' + str(density)
+        #print 'density: ' + str(density)
         
         # 2. + 3. Compute pressure force from pressure interaction between neighbouring particles
         pressure = calculatePressureForce( particlePos, density, listNeighbours, mass )
         #print 'pressure: ' + str(pressure)
+        
+        
         
         # 4. Compute viscosity force between neighbouring particles 
         viscosity = calculateViscosity( particlePos, i, listNeighbours, velocityList, density, h )
         
         # 5. Sum the pressure force, viscosity force and external force, ex gravity
         gravityForce = -9.82*mass
-        
-
+ 
         totalForce = [ pressure[0] + viscosity[0],
-                       pressure[1] + viscosity[1] ,
-                       pressure[2] + viscosity[2] + gravityForce ]
+                       pressure[1] + viscosity[1] + gravityForce,
+                       pressure[2] + viscosity[2]  ]
         
 
         #print 'totalForce: ' + str(totalForce)
         
         # 6. Compute the acceleration   
- 
         acceleration = [ totalForce[0] / density[0],
                          totalForce[1] / density[1],
                          totalForce[2] / density[2] ]
@@ -348,10 +317,10 @@ for j in range (1, 100):
         #print 'acceleration: ' + str(acceleration[1])
         # TODO QUESTION: Required to use past velocity?? 
 
-        velocityList[i] = [ velocityList[i][0] + acceleration[0] * time, 
-                            velocityList[i][1] + acceleration[1] * time,
-                            velocityList[i][2] + acceleration[2] * time ]
-        # SLITADE HÄR ALLT ÄR KAOS!!!!!!!!                    
+        velocityList[i] = [ velocityList[i][0] + acceleration[0] * (time/576), 
+                            velocityList[i][1] + acceleration[1] * (time/576),
+                            velocityList[i][2] + acceleration[2] * (time/576) ]
+                    
         #print 'acc_ '+str(acceleration)                    
         #print 'vel: '+str(velocityList[i])
         #print velocityList[i]
@@ -364,6 +333,8 @@ for j in range (1, 100):
         velocityList[i][1] = positionAndVelocity[4]
         velocityList[i][2] = positionAndVelocity[5]
         
+        # print 'vel2: ' + str(velocityList[i])
+        #print 'position: ' + str(newParticlePosition)
         #print newParticlePosition
 
         #cmds.select( 'particle'+str(i) )
