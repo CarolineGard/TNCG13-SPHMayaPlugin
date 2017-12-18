@@ -3,12 +3,26 @@
 import maya.cmds as cmds
 import random
 
-#random.seed( 1234 )
-
 
 # ****************************
 # ---------- SETUP ----------
 # ****************************
+
+# ----- Create Light -----
+
+# Create ambient light
+light = cmds.ambientLight(intensity=1.0)
+cmds.ambientLight( light, e=True, ss=True, intensity=0.5, n='lightAmb')
+cmds.move( 0, 8, 0 )
+
+# Create directional light
+light = cmds.directionalLight(rotation=(45, 30, 15), n='lightDir')
+cmds.directionalLight( light, e=True, ss=True, intensity=0.8 )
+
+# Query it
+cmds.ambientLight( light, q=True, intensity=True )
+cmds.directionalLight( light, q=True, intensity=True )
+
 
 # ----- Create Transparent Box -----
 
@@ -37,24 +51,20 @@ if len( particleList ) > 0:
 '''
 
 count=0
-for i in range( 0, 2 ):
-    for j in range( 0, 2):
-        for k in range( 0, 3 ):
+for i in range( 0, 10 ):
+    for j in range( 0, 10 ):
+        for k in range( 0, 10 ):
             count=count+1
-            result = cmds.polySphere( r=0.2, sx=1, sy=1, name='particle#' )
+            result = cmds.polySphere( r=0.15, sx=1, sy=1, name='particle#' )
             cmds.select('particle' + str(count))
-            cmds.move(-i*0.5,5+j*0.5,k*0.5,'particle' + str(count))
-
-
-#cmds.xform( particleGroup, centerPivots=True )
-
-# ----- Keyframes setup -----
-
-
-#Set the playback options
-cmds.playbackOptions(playbackSpeed = 0, maxPlaybackSpeed = 1)
-cmds.playbackOptions(min = 1, max = 100)
-cmds.currentTime(1)
+            cmds.move(-i*0.35+1.4, 3+j*0.35, k*0.35-1.4,'particle' + str(count))
+            
+            #----------- Material for spheres ---------
+            cmds.sets( name='redMaterialGroup', renderable=True, empty=True )
+            cmds.shadingNode( 'phong', name='redShader', asShader=True )
+            cmds.setAttr( 'redShader.color', 0.0, 0.5333, 0.8, type='double3' )
+            cmds.surfaceShaderList( 'redShader', add='redMaterialGroup' )
+            cmds.sets( 'particle' + str(count), e=True, forceElement='redMaterialGroup' )
 
 
 
