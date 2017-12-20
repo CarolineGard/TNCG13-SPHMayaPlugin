@@ -11,13 +11,14 @@ import random
 # ----- Create Light -----
 
 # Create ambient light
+
 light = cmds.ambientLight(intensity=1.0)
-cmds.ambientLight( light, e=True, ss=True, intensity=0.5, n='lightAmb')
+cmds.ambientLight( light, e=True, ss=True, intensity=0.2, n='lightAmb')
 cmds.move( 0, 8, 0 )
 
 # Create directional light
 light = cmds.directionalLight(rotation=(45, 30, 15), n='lightDir')
-cmds.directionalLight( light, e=True, ss=True, intensity=0.8 )
+cmds.directionalLight( light, e=True, ss=True, intensity=0.0 )
 
 # Query it
 cmds.ambientLight( light, q=True, intensity=True )
@@ -41,31 +42,22 @@ cmds.setAttr( 'lambert1.refractions', 1 )
 cmds.setAttr( 'lambert1.refractiveIndex', 1.52 )
 cmds.setAttr( 'lambert1.color', 0.417, 0.775769, 1, type = 'double3' )
 
-
 # ----- Create Particles -----
 
-'''
-particleList = cmds.ls( 'particle*' )
-if len( particleList ) > 0:
-    cmds.delete( particleList )
-'''
-
 count=0
-for i in range( 0, 10 ):
-    for j in range( 0, 10 ):
-        for k in range( 0, 10 ):
+for i in range( 0, 8 ):
+    for j in range( 0, 8 ):
+        for k in range( 0, 8 ):
             count=count+1
             result = cmds.polySphere( r=0.15, sx=1, sy=1, name='particle#' )
             cmds.select('particle' + str(count))
-            cmds.move(-i*0.35+1.4, 3+j*0.35, k*0.35-1.4,'particle' + str(count))
-            
-            #----------- Material for spheres ---------
+            cmds.move(-i*0.35+0.75, 3+j*0.35, k*0.35-0.75,'particle' + str(count))
+
             cmds.sets( name='redMaterialGroup', renderable=True, empty=True )
-            cmds.shadingNode( 'phong', name='redShader', asShader=True )
+            cmds.shadingNode( 'lambertian', name='redShader', asShader=True )
             cmds.setAttr( 'redShader.color', 0.0, 0.5333, 0.8, type='double3' )
             cmds.surfaceShaderList( 'redShader', add='redMaterialGroup' )
             cmds.sets( 'particle' + str(count), e=True, forceElement='redMaterialGroup' )
-
 
 
 # ****************************
